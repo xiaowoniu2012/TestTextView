@@ -40,7 +40,6 @@
 {
     if (self = [super initWithFrame:frame]) {
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(textDidChange:) name:UITextViewTextDidChangeNotification object:self];
-        self.delegate = self;
     }
     return self;
 }
@@ -58,14 +57,34 @@
 
 - (CGSize)intrinsicContentSize
 {
+    
+    
+    CGFloat scale = self.superview.transform.a;
+    if (scale == 0) {
+        scale = 1;
+    }
     CGRect textRect = [self.layoutManager usedRectForTextContainer:self.textContainer];
     CGFloat height = textRect.size.height + self.textContainerInset.top + self.textContainerInset.bottom;
-    CGFloat width = textRect.size.width + self.textContainerInset.left + self.textContainerInset.right;
+    CGFloat width = textRect.size.width + self.textContainerInset.left *scale + self.textContainerInset.right *scale;
     NSLog(@"textRect :%@ size: %@",[NSValue valueWithCGRect:textRect],[NSValue valueWithCGSize:self.textContainer.size]);
-    CGSize newsize = [self sizeThatFits:CGSizeMake(UIScreen.mainScreen.bounds.size.width - 40, HUGE_VAL)];
+    
+    CGFloat fixedWidth;
+    if (self.preferLayoutMaxWidth != 0) {
+        fixedWidth  = self.preferLayoutMaxWidth;
+    }else{
+        fixedWidth = CGRectGetWidth(self.frame);
+    }
+    CGSize newsize = [self sizeThatFits:CGSizeMake(fixedWidth, HUGE_VAL)];
     width = MAX(30,newsize.width);
 //
     return CGSizeMake(width, height);
+}
+
+- (void)setPreferLayoutMaxWidth:(CGFloat)preferLayoutMaxWidth {
+    if (_preferLayoutMaxWidth != preferLayoutMaxWidth) {
+        _preferLayoutMaxWidth = preferLayoutMaxWidth;
+        [self updateLayout];
+    }
 }
 
 - (void)textDidChange:(NSNotification *)notification

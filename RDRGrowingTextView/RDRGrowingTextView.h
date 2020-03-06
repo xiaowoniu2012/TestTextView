@@ -28,7 +28,23 @@
 //  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #import <UIKit/UIKit.h>
+/// 获取UIEdgeInsets在垂直方向上的值
+CG_INLINE CGFloat
+UIEdgeInsetsGetVerticalValue(UIEdgeInsets insets) {
+    return insets.top + insets.bottom;
+}
+
+/// 获取UIEdgeInsets在水平方向上的值
+CG_INLINE CGFloat
+UIEdgeInsetsGetHorizontalValue(UIEdgeInsets insets) {
+    return insets.left + insets.right;
+}
+
+CG_INLINE UIEdgeInsets
+UIEdgeInsetsScale(UIEdgeInsets insets,CGFloat scale) {
+    return UIEdgeInsetsMake(insets.top*scale, insets.left*scale, insets.bottom *scale, insets.right *scale);
+}
 
 @interface RDRGrowingTextView : UITextView
-
+@property (nonatomic,assign) CGFloat preferLayoutMaxWidth;
 @end
