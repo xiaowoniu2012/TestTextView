@@ -9,7 +9,7 @@
 #import "TestViewController.h"
 #import "RDRGrowingTextView.h"
 #import "Masonry.h"
-
+#import "YYKit.h"
 
 @interface TestViewController () <UITextViewDelegate>
 @property (nonatomic,strong) UIView *contentView;
@@ -18,6 +18,7 @@
 @property (nonatomic,assign) CGFloat tempMaxWidth;
 @property (nonatomic,assign) UIEdgeInsets paddingInsets;
 @property (nonatomic,assign) CGFloat maxScale;
+@property (nonatomic,assign) CGFloat currentScale;
 @end
 
 
@@ -38,6 +39,7 @@
     self.view.backgroundColor = [UIColor whiteColor];
     self.paddingInsets = UIEdgeInsetsMake(10, 10, 10, 10);
     self.textViewMaxWidth = UIScreen.mainScreen.bounds.size.width - 40;
+    self.currentScale = 1.0;
     // Do any additional setup after loading the view.
     [self addChildViews];
 }
@@ -71,6 +73,10 @@
 //    textView.selectable = NO;
     textView.textContainer.lineBreakMode = NSLineBreakByCharWrapping;
     textView.delegate = self;
+//    textView.scrollEnabled = NO;
+    textView.showsVerticalScrollIndicator = NO;
+    textView.showsHorizontalScrollIndicator = NO;
+    textView.bounces = NO;
     textView.preferLayoutMaxWidth = self.textViewMaxWidth;
     self.tempMaxWidth = self.textViewMaxWidth;
     _tView = textView;
@@ -90,6 +96,9 @@
     
     UIPinchGestureRecognizer *pin = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinch:)];
     [_contentView addGestureRecognizer:pin];
+    
+    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
+    [_contentView addGestureRecognizer:pan];
 }
 
 
@@ -131,7 +140,7 @@
 
 - (void)handlePinch:(UIPinchGestureRecognizer *)pinchGesture {
 
-    if (self.maxScale == 0) {
+    if (pinchGesture.state == UIGestureRecognizerStateBegan) {
         CGFloat width = CGRectGetWidth(self.view.bounds)-20;
         CGFloat ratio = (_contentView.bounds.size.width * 1.0)/ _contentView.bounds.size.height;
         CGAffineTransform transfrom = [self transformFromRect:_contentView.frame toRect:CGRectMake(10, 10, width, width/ratio)];
@@ -144,35 +153,59 @@
         CGFloat scale = pinchGesture.scale ;
         CGFloat velocity = pinchGesture.velocity;
         UIView *view = pinchGesture.view;
-        NSLog(@"scale is :%.2f  velocity : %.2f",scale , pinchGesture.velocity);
-        if (view.transform.a >= self.maxScale && velocity > 0) {
+        CGFloat delataScale = view.transform.a /  self.currentScale;
+        NSLog(@"scale is :%.2f delataScale : %.2f,  max scale is:%.2f realScale:%.2f, %.2f, velocity : %.2f",scale ,delataScale, self.maxScale,view.transform.a,view.transform.d, pinchGesture.velocity);
+        if (delataScale >= self.maxScale && velocity > 0) {
             pinchGesture.scale = 1;
             return;
             
-        }else if(view.transform.a <= 0.5 && velocity < 0) {
+        }else if(delataScale <= 0.5 && velocity < 0) {
             pinchGesture.scale = 1;
             return;
         }
         
         CGAffineTransform curTransform = view.transform;
         curTransform = CGAffineTransformScale(curTransform, scale, scale);
-        if (curTransform.a >= 0.5 && curTransform.a <= self.maxScale) {
+        if (delataScale >= 0.5 && delataScale <= self.maxScale) {
             view.transform = curTransform;
-            
+            self.currentScale = curTransform.a;
         }
         pinchGesture.scale = 1;
     }else if (pinchGesture.state == UIGestureRecognizerStateEnded) {
         self.tempMaxWidth = self.textViewMaxWidth /  _contentView.transform.a - UIEdgeInsetsGetHorizontalValue(self.paddingInsets);
     }
-    
+}
 
-    
+
+- (CGSize)maxViewSize {
+    return CGSizeMake(self.textViewMaxWidth+20, self.view.height - 40);
+}
+
+- (void)handlePan:(UIPanGestureRecognizer *)gesture {
+    CGPoint translation = [gesture translationInView:_contentView];
+    UIView *gestureView = gesture.view;
+    if (gestureView == _contentView) {
         
-    
-    
-    
-    
-
+        // x 在区间内 [0, self.width ] , y [0, self.height]
+        CGFloat minCenterX =  CGRectGetWidth(gestureView.frame) / 2 + 10;
+        CGFloat maxCenterX = [self maxViewSize].width - CGRectGetWidth(gestureView.frame) / 2;
+        
+        CGFloat minCenterY =  gestureView.height / 2 +20;
+        CGFloat maxCenterY = [self maxViewSize].height  - gestureView.height / 2 - 20;
+        
+        
+        CGFloat centerX = gestureView.centerX + translation.x;
+        CGFloat centerY = gestureView.centerY + translation.y;
+        
+        centerX = YY_CLAMP(centerX, minCenterX, maxCenterX);
+        centerY = YY_CLAMP(centerY, minCenterY, maxCenterY);
+        
+        gestureView.center = CGPointMake(centerX, centerY);
+//        [self updateBtnPositions];
+        [gesture setTranslation:CGPointZero inView:gestureView];
+        
+ 
+    }
 }
 
 @end
