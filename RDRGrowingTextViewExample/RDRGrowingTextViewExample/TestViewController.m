@@ -141,10 +141,15 @@
 - (void)handlePinch:(UIPinchGestureRecognizer *)pinchGesture {
 
     if (pinchGesture.state == UIGestureRecognizerStateBegan) {
-        CGFloat width = CGRectGetWidth(self.view.bounds)-20;
+        CGFloat width = CGRectGetWidth(self.view.bounds)-40;
         CGFloat ratio = (_contentView.bounds.size.width * 1.0)/ _contentView.bounds.size.height;
-        CGAffineTransform transfrom = [self transformFromRect:_contentView.frame toRect:CGRectMake(10, 10, width, width/ratio)];
+        CGAffineTransform transfrom = [self transformFromRect:_contentView.frame toRect:CGRectMake(20, 20, width, width/ratio)];
+        CGAffineTransform minTransfrom = [self transformFromRect:_contentView.frame toRect:CGRectMake(0, 0, width, width/ratio)];
         self.maxScale = transfrom.a;
+        self.maxScale = MAX(self.maxScale, 1.0);
+        if (self.currentScale == 0) {
+            self.currentScale = 1.0;
+        }
         NSLog(@"max scale is :%.2f ",self.maxScale);
     }
     
@@ -154,25 +159,44 @@
         CGFloat velocity = pinchGesture.velocity;
         UIView *view = pinchGesture.view;
         CGFloat delataScale = view.transform.a /  self.currentScale;
-        NSLog(@"scale is :%.2f delataScale : %.2f,  max scale is:%.2f realScale:%.2f, %.2f, velocity : %.2f",scale ,delataScale, self.maxScale,view.transform.a,view.transform.d, pinchGesture.velocity);
+        NSLog(@"scale is :%.2f delataScale:%.2f  currentScale : %.2f,  max scale is:%.2f realScale:%.2f, velocity : %.2f",scale ,delataScale,self.currentScale, self.maxScale,view.transform.a, pinchGesture.velocity);
         if (delataScale >= self.maxScale && velocity > 0) {
             pinchGesture.scale = 1;
             return;
-            
-        }else if(delataScale <= 0.5 && velocity < 0) {
+
+        }else if(view.transform.a <= 0.5 && velocity < 0) {
             pinchGesture.scale = 1;
             return;
         }
         
-        CGAffineTransform curTransform = view.transform;
-        curTransform = CGAffineTransformScale(curTransform, scale, scale);
-        if (delataScale >= 0.5 && delataScale <= self.maxScale) {
+        
+//        delataScale = YY_CLAMP(delataScale, 0.5, self.maxScale);
+        
+
+        
+//        if (velocity>0 && ( view.left <= 20 || (view.right >= self.view.width - 20))) {
+//
+//        }else{
+//            CGAffineTransform curTransform = view.transform;
+//            curTransform = CGAffineTransformScale(curTransform, scale, scale);
+//            view.transform = curTransform;
+//
+//        }
+        
+//        if (delataScale >= 0.5 && delataScale <= self.maxScale) {
+        if (delataScale <= self.maxScale) {
+            CGAffineTransform curTransform = view.transform;
+            curTransform = CGAffineTransformScale(curTransform, scale, scale);
             view.transform = curTransform;
-            self.currentScale = curTransform.a;
         }
+            
+//        }
+        
+        
         pinchGesture.scale = 1;
     }else if (pinchGesture.state == UIGestureRecognizerStateEnded) {
         self.tempMaxWidth = self.textViewMaxWidth /  _contentView.transform.a - UIEdgeInsetsGetHorizontalValue(self.paddingInsets);
+        self.currentScale = pinchGesture.view.transform.a;
     }
 }
 
